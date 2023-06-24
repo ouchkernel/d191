@@ -189,5 +189,6 @@ BEGIN
     RETURN;
 END;
 $$;
-
 ```
+
+Run call data_refresh() to show everything has been refreshed.
