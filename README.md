@@ -1,6 +1,43 @@
+```
+-- Setup
+DROP TABLE IF EXISTS detailed_table;
+DROP TABLE IF EXISTS summary_table;
+DROP TABLE IF EXISTS raw_data;
+DROP FUNCTION IF EXISTS percentage_of;
+DROP FUNCTION IF EXISTS updater_function;
+DROP PROCEDURE IF EXISTS data_refresh;
+```
+
+D. Provide an original SQL query in a text format that will extract the raw data needed for the detailed section of your report from the source database.
+
+```
+-- This creates an table with all the raw data needed for the reports
+
+CREATE TABLE raw_data AS
+SELECT c.name AS genre, r.rental_id, p.amount AS sales
+FROM category c
+LEFT JOIN film_category fc ON c.category_id = fc.category_id
+LEFT JOIN (
+  SELECT i.inventory_id, i.film_id
+  FROM inventory i
+) AS I ON fc.film_id = I.film_id
+LEFT JOIN rental r ON I.inventory_id = r.inventory_id
+LEFT JOIN payment p ON r.rental_id = p.rental_id
+ORDER BY r.rental_id;
+
+-- To view the raw_data table 
+SELECT * 
+FROM raw_data; 
+
+```
+
 C. Provide original SQL code in a text format that creates the detailed and summary tables to hold your report table sections.
 
 ```
+
+-- This creates a table titled detailed_tabled that will hold the information for the 
+-- detailed section of the business report 
+
 CREATE TABLE detailed_table AS
 SELECT
     genre,
@@ -16,12 +53,24 @@ GROUP BY
 ORDER BY
     normalized_sales DESC;
 
+-- To view the detailed_table table 
+SELECT * 
+FROM detailed_table; 
+
+-- This creates an empty table titled summary_table that will hold the information for the 
+-- summary section of the business report 
 CREATE TABLE summary_table (
     perf_indicator VARCHAR,
     genre VARCHAR,
     val NUMERIC
 );
 
+-- To view the detailed_table table 
+SELECT * 
+FROM summary_table; 
+
+
+--- This will load the information into the summary_table
 WITH max_sales AS (
   SELECT a.genre, a.sum_sales
   FROM detailed_table a
@@ -46,12 +95,15 @@ VALUES
   ('MOST RENTALS', (SELECT genre FROM max_rentals), (SELECT count_rentals FROM max_rentals)),
   ('HIGHEST SALES', (SELECT genre FROM highest_sales), (SELECT normalized_sales FROM highest_sales));
 
-
+-- To view the detailed_table table 
+SELECT * 
+FROM summary_table; 
 ```
 
 B. Provide original code for function(s) in text format that perform the transformation(s) you identified in part A4.
 
 ```
+-- Creating a function
 CREATE OR REPLACE FUNCTION percentage_of(
   part DECIMAL(10, 4),
   total DECIMAL(10, 4)
@@ -66,22 +118,6 @@ BEGIN
   RETURN CAST(percentage * 100 AS DECIMAL(10, 2));
 END;
 $$;
-```
-
-D. Provide an original SQL query in a text format that will extract the raw data needed for the detailed section of your report from the source database.
-
-```
-CREATE TABLE raw_data AS
-SELECT c.name AS genre, r.rental_id, p.amount AS sales
-FROM category c
-LEFT JOIN film_category fc ON c.category_id = fc.category_id
-LEFT JOIN (
-  SELECT i.inventory_id, i.film_id
-  FROM inventory i
-) AS I ON fc.film_id = I.film_id
-LEFT JOIN rental r ON I.inventory_id = r.inventory_id
-LEFT JOIN payment p ON r.rental_id = p.rental_id
-ORDER BY r.rental_id;
 ```
 
 E. Provide original SQL code in a text format that creates a trigger on the detailed table of the report that will continually update the summary table as data is added to the detailed table.
@@ -128,6 +164,10 @@ CREATE TRIGGER updater
  ON detailed_table
  FOR EACH STATEMENT
  EXECUTE PROCEDURE updater_function();
+
+-- Check the tables
+SELECT * FROM summary_table;
+SELECT * FROM detailed_table;
 ```
 
 F. Provide an original stored procedure in a text format that can be used to refresh the d
@@ -191,4 +231,10 @@ END;
 $$;
 ```
 
-Run call data_refresh() to show everything has been refreshed.
+-- Call the proc and show the data.
+
+```
+call data_refresh()
+SELECT * FROM detailed_table
+SELECT * FROM summary_table
+```
